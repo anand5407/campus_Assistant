@@ -49,7 +49,7 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
   const handleReset = () => {
     setZoom(1);
     setRotation(0);
-  }; 
+  };
 
   // Animation state for human icon
   const [humanProgress, setHumanProgress] = useState(0);
@@ -83,8 +83,10 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
 
   return (
     <div className="flex-1 bg-gradient-to-br from-green-50 to-green-100 overflow-hidden relative" style={{ contain: 'layout' }}>
+
       <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: !collapsed ? '#B3E6B3' : 'transparent' }}>
         <div className={`relative ${!collapsed ? 'h-5/6' : 'w-full h-full'} bg-gradient-to-br from-green-50 to-green-100 overflow-hidden`} style={{ contain: 'layout' }}>
+
           <div className="absolute top-6 right-6 z-20 flex flex-col gap-2">
             <button
               onClick={() => setIsZoomOpen(!isZoomOpen)}
@@ -154,7 +156,7 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
 
               <svg
                 key={`hotspots-${collapsed}`}
-                className="absolute inset-0 w-full h-full pointer-events-auto"
+                className="absolute inset-0 w-full h-full pointer-events-none z-10"
                 viewBox="0 0 100 100"
                 preserveAspectRatio="xMidYMid slice"
               >
@@ -198,7 +200,7 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                     fill="#ffffff"
                   />
                 </g>
-                
+
                 {/* Highlighted path (dotted, with curve between M and P, or M and X1 for bus-parking) */}
                 {pathPoints.length > 1 && (() => {
                   // Find indices for M, P, and X1
@@ -236,22 +238,45 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                   }
                   // Fallback to straight lines if M and P/X1 are not adjacent
                   if ((!isBusParking && (Midx === -1 || Pidx === -1 || Math.abs(Midx - Pidx) !== 1)) ||
-                      (isBusParking && (Midx === -1 || X1idx === -1 || Math.abs(Midx - X1idx) !== 1))) {
+                    (isBusParking && (Midx === -1 || X1idx === -1 || Math.abs(Midx - X1idx) !== 1))) {
                     d = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
                     for (let i = 1; i < pathPoints.length; ++i) {
                       d += ` L ${pathPoints[i].x} ${pathPoints[i].y}`;
                     }
                   }
                   return (
-                    <path
-                      d={d}
-                      fill="none"
-                      stroke="#efec3c"
-                      strokeWidth="0.7"
-                      strokeDasharray="0.1,2.2"
-                      strokeLinecap="round"
-                      style={{ filter: 'drop-shadow(0 0 1px #e11d48)' }}
-                    />
+                    <>
+                      {/* Shadow/glow path underneath */}
+                      <path
+                        d={d}
+                        fill="none"
+                        stroke="#16a34a"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.3"
+                      />
+                      {/* Main solid route line */}
+                      <path
+                        d={d}
+                        fill="none"
+                        stroke="#22c55e"
+                        strokeWidth="0.9"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ filter: 'drop-shadow(0 0 2px #16a34a)' }}
+                      />
+                      {/* White center line for road feel */}
+                      <path
+                        d={d}
+                        fill="none"
+                        stroke="#ffffff"
+                        strokeWidth="0.25"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.6"
+                      />
+                    </>
                   );
                 })()}
                 {/* Human icon animation */}
@@ -261,9 +286,9 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                     let totalDist = 0;
                     const segLens = [];
                     for (let i = 1; i < pathPoints.length; ++i) {
-                      const dx = pathPoints[i].x - pathPoints[i-1].x;
-                      const dy = pathPoints[i].y - pathPoints[i-1].y;
-                      const len = Math.sqrt(dx*dx + dy*dy);
+                      const dx = pathPoints[i].x - pathPoints[i - 1].x;
+                      const dy = pathPoints[i].y - pathPoints[i - 1].y;
+                      const len = Math.sqrt(dx * dx + dy * dy);
                       segLens.push(len);
                       totalDist += len;
                     }
@@ -278,12 +303,12 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                     const x1Idx = pathPoints.findIndex((pt) => getKeyByValue(pathNodes, pt) === 'X1');
                     const isBusParking = selectedLocation?.id === 'bus-parking';
                     for (let i = 1; i < pathPoints.length; ++i) {
-                      if (travel > segLens[i-1]) {
-                        travel -= segLens[i-1];
+                      if (travel > segLens[i - 1]) {
+                        travel -= segLens[i - 1];
                       } else {
-                        const t = segLens[i-1] === 0 ? 0 : travel / segLens[i-1];
+                        const t = segLens[i - 1] === 0 ? 0 : travel / segLens[i - 1];
                         // Calculate direction angle for rotation
-                        if (isBusParking && i-1 === mIdx && i === x1Idx && mIdx !== -1 && x1Idx !== -1) {
+                        if (isBusParking && i - 1 === mIdx && i === x1Idx && mIdx !== -1 && x1Idx !== -1) {
                           // Curve from M to X1 for bus-parking
                           const prev = pathPoints[mIdx];
                           const next = pathPoints[x1Idx];
@@ -291,14 +316,14 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                           const cy = Math.max(prev.y, next.y) + 3;
                           // Quadratic Bezier formula
                           pos = {
-                            x: (1-t)*(1-t)*prev.x + 2*(1-t)*t*cx + t*t*next.x,
-                            y: (1-t)*(1-t)*prev.y + 2*(1-t)*t*cy + t*t*next.y,
+                            x: (1 - t) * (1 - t) * prev.x + 2 * (1 - t) * t * cx + t * t * next.x,
+                            y: (1 - t) * (1 - t) * prev.y + 2 * (1 - t) * t * cy + t * t * next.y,
                           };
                           // Calculate tangent angle at position t
-                          const tx = 2*(1-t)*(cx - prev.x) + 2*t*(next.x - cx);
-                          const ty = 2*(1-t)*(cy - prev.y) + 2*t*(next.y - cy);
+                          const tx = 2 * (1 - t) * (cx - prev.x) + 2 * t * (next.x - cx);
+                          const ty = 2 * (1 - t) * (cy - prev.y) + 2 * t * (next.y - cy);
                           currentAngle = Math.atan2(ty, tx) * (180 / Math.PI);
-                        } else if (!isBusParking && i-1 === mIdx && i === pIdx && mIdx !== -1 && pIdx !== -1) {
+                        } else if (!isBusParking && i - 1 === mIdx && i === pIdx && mIdx !== -1 && pIdx !== -1) {
                           // Curve from M to P for other paths (canteen, gate-2)
                           const prev = pathPoints[mIdx];
                           const next = pathPoints[pIdx];
@@ -306,21 +331,21 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                           const cy = Math.max(prev.y, next.y) + 5;
                           // Quadratic Bezier formula
                           pos = {
-                            x: (1-t)*(1-t)*prev.x + 2*(1-t)*t*cx + t*t*next.x,
-                            y: (1-t)*(1-t)*prev.y + 2*(1-t)*t*cy + t*t*next.y,
+                            x: (1 - t) * (1 - t) * prev.x + 2 * (1 - t) * t * cx + t * t * next.x,
+                            y: (1 - t) * (1 - t) * prev.y + 2 * (1 - t) * t * cy + t * t * next.y,
                           };
                           // Calculate tangent angle at position t
-                          const tx = 2*(1-t)*(cx - prev.x) + 2*t*(next.x - cx);
-                          const ty = 2*(1-t)*(cy - prev.y) + 2*t*(next.y - cy);
+                          const tx = 2 * (1 - t) * (cx - prev.x) + 2 * t * (next.x - cx);
+                          const ty = 2 * (1 - t) * (cy - prev.y) + 2 * t * (next.y - cy);
                           currentAngle = Math.atan2(ty, tx) * (180 / Math.PI);
                         } else {
                           pos = {
-                            x: pathPoints[i-1].x + t * (pathPoints[i].x - pathPoints[i-1].x),
-                            y: pathPoints[i-1].y + t * (pathPoints[i].y - pathPoints[i-1].y),
+                            x: pathPoints[i - 1].x + t * (pathPoints[i].x - pathPoints[i - 1].x),
+                            y: pathPoints[i - 1].y + t * (pathPoints[i].y - pathPoints[i - 1].y),
                           };
                           // Calculate direction angle
-                          const dx = pathPoints[i].x - pathPoints[i-1].x;
-                          const dy = pathPoints[i].y - pathPoints[i-1].y;
+                          const dx = pathPoints[i].x - pathPoints[i - 1].x;
+                          const dy = pathPoints[i].y - pathPoints[i - 1].y;
                           currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
                         }
                         if (humanProgress === 1) {
@@ -386,13 +411,7 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                         y={hotspot.y}
                         width={hotspot.width}
                         height={hotspot.height}
-                        className={`pointer-events-auto cursor-pointer transition-all duration-300 ${
-                          isSelected
-                            ? 'fill-transparent stroke-blue-600/60 stroke-[0.5]'
-                            : isHovered
-                            ? 'fill-transparent stroke-yellow-500/50'
-                            : 'fill-transparent stroke-transparent'
-                        }`}
+                        className="fill-transparent stroke-transparent pointer-events-auto cursor-pointer"
                         rx="1"
                         onMouseEnter={() => setHoveredHotspot(hotspot.id)}
                         onMouseLeave={() => setHoveredHotspot(null)}
@@ -406,24 +425,6 @@ export function CampusMap({ selectedLocation, onLocationClick, collapsed, onTogg
                         }}
                         style={{ pointerEvents: 'auto' }}
                       />
-
-                      {isSelected && (
-                        <rect
-                          x={hotspot.x}
-                          y={hotspot.y}
-                          width={hotspot.width}
-                          height={hotspot.height}
-                          className="fill-transparent stroke-blue-500/50 stroke-[0.3]"
-                          rx="1"
-                        >
-                          <animate
-                            attributeName="opacity"
-                            values="0.15;0.35;0.15"
-                            dur="2.5s"
-                            repeatCount="indefinite"
-                          />
-                        </rect>
-                      )}
                     </g>
                   );
                 })}
